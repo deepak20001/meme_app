@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:meme_app/controller/save_my_data.dart';
 import '../controller/fetch_meme.dart';
 
 class MainScreen extends StatefulWidget {
@@ -9,21 +10,32 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  Future<void> UpdateImg() async {
+  Future<void> updateImg() async {
     String getImgUrl = await FetchMeme.fetchNewMeme();
 
     setState(() {
       imageUrl = getImgUrl;
+      isLoading = false;
     });
   }
 
+  getInitMeme() async {
+    // on starting of new app memeNo = 0
+    memeNo = await SaveMyData.fetchData() ?? 0;
+    setState(() {});
+  }
+
   String imageUrl = "";
+  int? memeNo;
+  int targetMemeNo = 100;
+  bool isLoading = true;
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    UpdateImg();
+    getInitMeme();
+    updateImg();
   }
 
   @override
@@ -47,23 +59,37 @@ class _MainScreenState extends State<MainScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              "Meme #01",
-              style: TextStyle(fontSize: 25, fontWeight: FontWeight.w600),
+            Text(
+              "Meme #$memeNo",
+              style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 10),
-            const Text(
-              "Target 500 Memes",
-              style: TextStyle(fontSize: 18),
+            Text(
+              "Target $targetMemeNo Memes",
+              style: const TextStyle(fontSize: 18),
             ),
             const SizedBox(height: 30),
-            imageUrl == ""
-                ? const CircularProgressIndicator()
-                : Image.network(imageUrl),
+            isLoading
+                ? Container(
+                    height: 40,
+                    width: 40,
+                    child: CircularProgressIndicator(),
+                  )
+                : Image.network(
+                    imageUrl,
+                    height: 400,
+                    width: MediaQuery.of(context).size.width,
+                    fit: BoxFit.contain,
+                  ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                UpdateImg();
+              onPressed: () async {
+                isLoading = true;
+                await SaveMyData.saveData(memeNo! + 1);
+                if (memeNo == 100) targetMemeNo = 500;
+                if (memeNo == 500) targetMemeNo = 1000;
+                getInitMeme();
+                updateImg();
               },
               child: Container(
                 height: 50,
